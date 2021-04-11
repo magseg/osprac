@@ -2,9 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 int a = 0;  // The variable a is global static for the entire program,
-// so it will be shared by both threads of execution
+            // so it will be shared by both threads of execution.
 
 /**
   Below follows the text of the function
@@ -15,19 +14,16 @@ int a = 0;  // The variable a is global static for the entire program,
 **/
 void *mythread(void *dummy)
 {
-    pthread_mutex_t *mut = (pthread_mutex_t *)dummy;
-    pthread_t mythid;
-    //
-    // Note that mythid variable is a dynamic local variable of mythread () function,
-    // that is, it is pushed on the stack and, therefore, is not shared by the threads.
-    //
-    mythid = pthread_self();
+  pthread_t mythid;
+  //
+  // Note that mythid variable is a dynamic local variable of mythread () function,
+  // that is, it is pushed on the stack and, therefore, is not shared by the threads.
+  //
+  mythid = pthread_self();
 
-    pthread_mutex_lock(mut);
-    a = a+1;
-    pthread_mutex_unlock(mut);
-    printf("Thread %u, Calculation result = %d\n", mythid, a);
-    return NULL;
+  a = a+1;
+  printf("Thread %u, Calculation result = %d\n", mythid, a);
+  return NULL;
 }
 
 /**
@@ -35,46 +31,46 @@ void *mythread(void *dummy)
 **/
 int main()
 {
-    pthread_t thid, thid1, mythid;
-    int       result, ret;
-    pthread_mutex_t mut_;
-    //
-    // Try to create a new thread of execution associated with the mythread () function.
-    // Pass it NULL as a parameter. If it succeeds,
-    // the identifier of the new thread is written into the thid variable.
-    // If an error occurs, stop working.
-    //
-    result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, (void *)&mut_);
-    ret = pthread_create(&thid1, (pthread_attr_t *)NULL, mythread, (void *)&mut_);
+  pthread_t thid, secthid, mythid;
+  int       result;
+  //
+  // Try to create a new thread of execution associated with the mythread () function.
+  // Pass it NULL as a parameter. If it succeeds,
+  // the identifier of the new thread is written into the thid variable.
+  // If an error occurs, stop working.
+  //
+  result = pthread_create (&thid, (pthread_attr_t *)NULL, mythread, NULL);
 
-    if (result != 0) {
-        printf ("Error on thread create, return value = %d\n", result);
-        exit(-1);
-    }
-    printf("Thread created, thid = %u\n", thid);
+  if (result != 0) {
+    printf ("Error on thread create, return value = %d\n", result);
+    exit(-1);
+  }
 
-    if (ret != 0) {
-        printf ("Error on thread create, return value = %d\n", ret);
-        exit(-1);
-    }
-    printf("Thread created, thid1= %u\n", thid1);
+  printf("Thread created, thid = %u\n", thid);
 
 
-    mythid = pthread_self();
+  result = pthread_create(&secthid, (pthread_attr_t*)NULL, mythread, NULL);
 
-    pthread_mutex_lock(&mut_);
-    a = a+1;
-    pthread_mutex_unlock(&mut_);
+  if (result != 0) {
+      printf("Error on thread create, return value = %d\n", result);
+      exit(-1);
+  }
 
-    printf("Thread %u, Calculation result = %d\n", mythid, a);
-    //
-    // Wait for the spawned thread to terminate, not caring what value it returns.
-    // If this function is not called, the main() function may end before
-    // the spawned thread is executed, which will automatically cause it to terminate,
-    // distorting the results.
-    //
-    pthread_join(thid, (void **)NULL);
-    pthread_join(thid1, (void **)NULL);
+  printf("Thread created, thid = %u\n", secthid);
 
-    return 0;
+  mythid = pthread_self();
+
+  a = a+1;
+
+  printf("Thread %u, Calculation result = %d\n", mythid, a);
+  //
+  // Wait for the spawned thread to terminate, not caring what value it returns.
+  // If this function is not called, the main() function may end before
+  // the spawned thread is executed, which will automatically cause it to terminate,
+  // distorting the results.
+  //
+  pthread_join(thid, (void **)NULL);
+  pthread_join(secthid, (void**)NULL);
+
+  return 0;
 }
