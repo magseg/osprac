@@ -14,16 +14,12 @@ int main()
   char    pathname[] = "07-3a.c";
   key_t   key;
   long    i;
+  int   semid;
   struct sembuf mybuf;
 
   if ((key = ftok(pathname,0)) < 0) {
     printf("Can\'t generate key\n");
     exit(-1);
-  }
-
-  if ((semid = semget(key, 1, 0666 | IPC_CREAT)) < 0) {
-      printf("Can\'t create semaphore set\n");
-      exit(-1);
   }
 
   if ((shmid = shmget(key, 3*sizeof(int), 0666|IPC_CREAT|IPC_EXCL)) < 0) {
@@ -44,27 +40,33 @@ int main()
     exit(-1);
   }
 
+  if ((key = ftok(pathname,0)) < 0) {
+    printf("Can\'t generate key\n");
+    exit(-1);
+  }
+
+  if ((semid = semget(key, 1, 0666 | IPC_CREAT)) < 0) {
+    printf("Can\'t create semaphore set\n");
+    exit(-1);
+  }
+
   mybuf.sem_num = 0;
-  mybuf.sem_op  = 1;
+  mybuf.sem_op  = -1;
   mybuf.sem_flg = 0;
 
+  if (semop(semid, &mybuf, 1) < 0) {
+    printf("Can\'t wait for condition\n");
+    exit(-1);
+  }
 
   if (new) {
-    semop(semid, &mybuf, 1);
     array[0] =  1;
     array[1] =  0;
     array[2] =  1;
-    mybuf.sem_op  = -1;
-    semop(semid, &mybuf, 1);
-    mybuf.sem_op = 1;
   } else {
     array[0] += 1;
     for(i=0; i<2000000000L; i++);
-    semop(semid, &mybuf, 1);
     array[2] += 1;
-    mybuf.sem_op  = -1;
-    semop(semid, &mybuf, 1);
-    mybuf.sem_op = 1;
   }
 
   printf
